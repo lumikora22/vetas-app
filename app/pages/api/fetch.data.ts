@@ -8,7 +8,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "GET") {
-    const { data, error } = await supabase.from("Articulo_venta").select("*");
+    const { data, error } = await supabase.from("Articulos").select("*");
     console.log(data);
     if (error) {
       return res.status(500).json({ error: error.message });
