@@ -1,4 +1,4 @@
-import { unstable_noStore as noStore } from "next/cache";
+import { unstable_noStore as noStore, revalidateTag } from "next/cache";
 import { supabase } from "@/app/lib/supabaseClient";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -73,80 +73,50 @@ export const fetchFilteredProducts = async (
 export const fetchFilteredSales = async (
   query: string,
   currentPage: number
-): Promise<{ sales: any[]; totalPages: number }> => {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  // Primero obtener el total de registros
-  const { count: totalSalesCount, error: countError } = await supabase
-    .from("Venta")
-    .select("id_venta", { count: "exact" })
-    .ilike("folio_contrato", `%${query}%`);
-
-  if (countError) {
-    console.error("Error al obtener el total de ventas:", countError);
-    return { sales: [], totalPages: 0 };
-  }
-  const totalSales = totalSalesCount ?? 0; //
-  // Calcular el número total de páginas
-  const totalPages = Math.ceil(totalSales / ITEMS_PER_PAGE);
-
-  // Luego, obtener las ventas correspondientes a la página solicitada
-  const { data, error } = await supabase
-    .from("Venta")
-    .select(
-      `
+): Promise<any[]> => {
+  const { data, error } = await supabase.from("Venta").select(`
       id_venta,
-      created_at,
       folio_contrato,
-      dias_pago,
       cobro_pago,
       start_date,
       end_date,
-      cantidad_semanas_pago,
-      enganche,
-      Cliente (
+      dias_pago,
+      Cliente(
         id_cliente,
         name_cliente,
         adress_cliente,
-        location, 
+        location,
         phone_number
-      ),
-      Cobrador (
+        ),
+      Cobrador(
         id_cobrador,
         name_cobrador
-      ),
-      Venta_articulo (
+      ), 
+      Venta_articulo(
+        Articulo:id_articulo(
         id_articulo,
-        id_venta,
-        cantidad_venta,
-        Articulos (
-          id_articulo,
-          name_articulo,
-          precio_articulo
-        )
+        precio_articulo
       ),
-      Cuenta_venta (
+        cantidad_venta,
+        id_venta
+      ),
+      Cuenta_venta(
         id_pago,
-        created_at,
-        id_cliente,
-        id_cobrador,
-        id_venta,
         total_pago_evento,
         fecha_pago,
         status_pago,
         resta_pago
-      )
-      `
-    )
-    .ilike("folio_contrato", `%${query}%`)
-    .range(offset, offset + ITEMS_PER_PAGE - 1); // Paginación con offset y limit
+      ),
+      cantidad_semanas_pago, 
+      enganche`);
 
+  // console.log(data);
   if (error) {
-    console.error("Error al obtener las ventas:", error);
-    return { sales: [], totalPages: 0 };
+    throw new Error(error.message);
   }
+  noStore();
 
-  return { sales: data, totalPages };
+  return data;
 };
 
 export const fetchColaborators = async (): Promise<any[]> => {
@@ -280,7 +250,7 @@ export const fetchAllCustomersWithSaleInfoPay = async (): Promise<any> => {
     `
   );
 
-  // console.log(data);
+  console.log(data);
   if (error) {
     throw new Error(error.message);
   }
@@ -306,11 +276,12 @@ export const fetchProductos = async () => {
 export const savePagoPorConfirmar = async (id_pagos: any) => {
   // const { data, error } = await supabase.from("Articulos").select("*");
   const { data, error } = await supabase
-    .from("Pagos_confirmar")
+    .from("Cobros_confirmar")
     .upsert(id_pagos)
     .select();
 
   if (error) {
+    console.log(error);
     throw new Error(error.message);
   }
   // console.log(data);
@@ -323,7 +294,7 @@ export const procesarRechazarPago = async (id_venta: any) => {
     // Obtener los datos actuales de la venta para conocer el valor de cobro_pago y resta_pago
 
     const { data: pagos, error: fetchError } = await supabase
-      .from("Pagos_confirmar")
+      .from("Cobros_confirmar")
       .select(
         `
         id_venta
@@ -343,7 +314,7 @@ export const procesarRechazarPago = async (id_venta: any) => {
     const venta: any = pagos[0].id_venta;
 
     const { error: deleteError } = await supabase
-      .from("Pagos_confirmar")
+      .from("Cobros_confirmar")
       .delete()
       .eq("id_venta", venta);
 
@@ -360,7 +331,7 @@ export const procesarConfirmacionPago = async (id_venta: any) => {
   try {
     // Obtener los datos actuales de la venta para conocer el valor de cobro_pago y resta_pago
     const { data: pagos, error: fetchError } = await supabase
-      .from("Pagos_confirmar")
+      .from("Cobros_confirmar")
       .select(
         `
         Venta(
@@ -374,8 +345,6 @@ export const procesarConfirmacionPago = async (id_venta: any) => {
       `
       )
       .eq("id_venta", id_venta);
-
-    console.log(pagos);
 
     if (fetchError) throw new Error(fetchError.message);
 
@@ -405,12 +374,13 @@ export const procesarConfirmacionPago = async (id_venta: any) => {
 
     if (updateError) throw new Error(updateError.message);
 
-    // Ahora eliminamos el registro de `Pagos_confirmar` para esta venta
-    const { error: deleteError } = await supabase
-      .from("Pagos_confirmar")
+    // Ahora eliminamos el registro de `Cobros_confirmar` para esta venta
+    const { error: deleteError, data } = await supabase
+      .from("Cobros_confirmar")
       .delete()
       .eq("id_venta", id_venta);
 
+    console.log(data);
     if (deleteError) throw new Error(deleteError.message);
 
     console.log(`Pago procesado correctamente para la venta ${id_venta}`);
@@ -421,7 +391,9 @@ export const procesarConfirmacionPago = async (id_venta: any) => {
 };
 
 export const fetchPagosParaConfirmar = async () => {
-  const { data, error } = await supabase.from("Pagos_confirmar").select(`
+  revalidateTag("cobros_confirmar");
+  const { data, error } = await supabase.from("Cobros_confirmar").select(
+    `
     id_venta,
     id_cliente,
     Cliente(
@@ -434,11 +406,13 @@ export const fetchPagosParaConfirmar = async () => {
       cobro_pago,
       start_date,
       Cuenta_venta(
+        id_pago,
         resta_pago,
         fecha_pago
-  )
+      )
     )
-    `);
+    `
+  );
 
   console.log(data);
   if (error) {

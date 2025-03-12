@@ -7,9 +7,6 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function login(formData: any) {
   const supabase = createClient();
-
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
   const data = {
     email: formData.username,
     password: formData.password,
@@ -18,29 +15,75 @@ export async function login(formData: any) {
   const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    redirect("/error");
+    console.log(error);
+    throw new Error("Error al iniciar sesión");
   }
 
-  revalidatePath("/", "layout");
-  redirect("/");
+  return "/"; // Redirigir al dashboard o a la página principal
 }
 
-export async function signup(formData: FormData) {
+export async function logout() {
   const supabase = createClient();
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    console.error("Error al cerrar sesión:", error);
+    throw new Error("Error al cerrar sesión");
+  }
+
+  return "/login"; // Redirigir al login después de cerrar sesión
+}
+
+// Función para registrar un nuevo usuario
+export async function register(formData: any) {
+  const supabase = createClient();
   const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    email: formData.username,
+    password: formData.password,
   };
 
+  console.log(data);
+
+  // La respuesta de supabase.auth.signUp() puede contener solo error
   const { error } = await supabase.auth.signUp(data);
 
   if (error) {
-    redirect("/error");
+    console.log(error);
+    throw new Error("Error al registrar el usuario");
   }
 
-  revalidatePath("/", "layout");
-  redirect("/");
+  return "/login"; // Redirigir a la página de login después de registrarse
+}
+
+export async function getUserRole(userId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("roles(name)")
+    .eq("user_id", userId)
+    .single();
+
+  console.log(data);
+  if (error) {
+    console.error("Error obteniendo rol:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function getCurrentUserId(): Promise<string> {
+  const supabase = createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("Error obteniendo usuario:", error);
+    return "null";
+  }
+
+  return user?.id || "null";
 }

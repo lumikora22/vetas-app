@@ -36,9 +36,10 @@ export function ClienteCombobox() {
   // Función para cargar todos los clientes
   const loadAllClientes = async () => {
     setLoading(true);
+
     const clientesData = await fetchAllCustomersWithSaleInfoPay(); // Obtener todos los clientes
     setClientes(clientesData);
-    console.log(clientesData);
+
     setLoading(false);
   };
 
@@ -58,16 +59,15 @@ export function ClienteCombobox() {
   // Función para seleccionar un cliente
   const handleSelectCliente = (clienteId: string) => {
     const cliente = clientes.find((c) => c.id_cliente === clienteId);
-    console.log(cliente);
+
     const formatedCliente = formatVentasGenerales(cliente);
     setSelectedCliente(formatedCliente);
-    console.log(formatedCliente);
+
     setValue(clienteId); // Para actualizar el valor del combobox
     setOpen(false); // Cerrar el combobox
   };
 
   const handleRealizarPago = async (venta: any, id_cliente: any) => {
-    console.log(venta);
     Swal.fire({
       title: "¿Confirmar pago?",
       text: "¿Está seguro de que desea realizar el pago?",
@@ -90,10 +90,11 @@ export function ClienteCombobox() {
             id_cliente: id_cliente,
           };
           const pago = await savePagoPorConfirmar(cobro);
-          console.log(pago);
+
           // Aquí llamas a la función para realizar el pago
           // await realizarPago(ventaId);
           Swal.fire("Pago realizado", "El pago se ha completado.", "success");
+          loadAllClientes();
         } catch (error) {
           Swal.fire(
             "Error",
@@ -103,6 +104,77 @@ export function ClienteCombobox() {
         }
       }
     });
+  };
+
+  const handleImprimir = (venta: any, cliente: any) => {
+    const reciboWindow = window.open("", "_blank");
+    if (!reciboWindow) {
+      alert("No se pudo abrir la ventana de impresión. Permita los pop-ups.");
+      return;
+    }
+
+    const fecha = new Date(venta.fecha_pago).toLocaleDateString();
+    const contenido = `
+      <html>
+        <head>
+          <title>Recibo de Pago</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .container { width: 80%; margin: auto; border: 1px solid #000; padding: 20px; }
+            .header { text-align: center; font-weight: bold; font-size: 18px; }
+            .sub-header { text-align: center; font-size: 14px; margin-bottom: 20px; }
+            .datos { margin-bottom: 10px; }
+            .tabla { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .tabla, .tabla th, .tabla td { border: 1px solid black; }
+            .tabla th, .tabla td { padding: 8px; text-align: left; }
+            .firma { margin-top: 30px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">NOVEDADES DE LOS ÁNGELES</div>
+            <div class="sub-header">Tehuacán, Puebla - Tel: 124 21 86</div>
+  
+            <div class="datos">
+              <p><strong>Nombre:</strong> ${cliente.name_cliente}</p>
+              <p><strong>Dirección:</strong> ${cliente.adress_cliente}</p>
+              <p><strong>Teléfono:</strong> ${cliente.phone_number}</p>
+              <p><strong>Fecha de Compra:</strong> ${fecha}</p>
+            </div>
+  
+            <table class="tabla">
+              <tr>
+                <th>Cantidad</th>
+                <th>Artículo</th>
+                <th>Precio</th>
+              </tr>
+              <tr>
+                <td>1</td>
+                <td>Pago por contrato #${venta.folio_contrato}</td>
+                <td>$${venta.cobro_pago}</td>
+              </tr>
+            </table>
+  
+            <div class="datos">
+              <p><strong>Abono:</strong> $${venta.cobro_pago}</p>
+              <p><strong>Saldo Restante:</strong> $${venta.resta_pago}</p>
+            </div>
+  
+            <div class="firma">
+              ___________________________<br />
+              Firma del Cliente
+            </div>
+          </div>
+  
+          <script>
+            window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    reciboWindow.document.write(contenido);
+    reciboWindow.document.close();
   };
 
   return (
@@ -290,7 +362,12 @@ export function ClienteCombobox() {
                           >
                             Realizar pago
                           </button>
-                          <button className="w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors focus:outline-none">
+                          <button
+                            onClick={() =>
+                              handleImprimir(venta, selectedCliente)
+                            }
+                            className="w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors focus:outline-none"
+                          >
                             Imprimir
                           </button>
                         </div>

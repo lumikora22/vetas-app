@@ -42,42 +42,35 @@ const dayMap: any = {
   Sábado: 6,
 };
 
-export default function ShowVenta({ sale }: { sale: any }) {
-  const [isOpen, setIsOpen] = useState(false); // Estado para controlar si el modal está abierto
+export default function ShowVenta({
+  sale,
+  onClose,
+}: {
+  sale: any;
+  onClose: () => void;
+}) {
   const { Cliente, Cobrador, Venta_articulo, Cuenta_venta } = sale;
   //   console.log(sale);
   // Funciones para abrir y cerrar el modal
 
   // Calcular el total de los artículos vendidos
+  // const totalArticulo = 0;
   const totalArticulo = Venta_articulo.reduce(
     (acc: number, item: any) =>
-      acc + item.Articulos.precio_articulo * item.cantidad_venta,
+      acc + item.Articulo.precio_articulo * item.cantidad_venta,
     0
   );
-
-  // Calcular el total pagado
-  const totalPago = Cuenta_venta.reduce(
-    (acc: number, pago: any) => acc + pago.total_pago_evento,
-    0
-  );
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
 
   const nextPayDay = getNextWeekdayDate(sale.dias_pago);
 
   return (
     <>
-      {/* Aquí está el botón que abre el modal */}
-
-      {/* Dialog solo se muestra si isOpen es true */}
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="outline">
-            {" "}
-            <Eye className="h-5 w-5" />
-          </Button>
-        </DialogTrigger>
-
+      <Dialog
+        open={true}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) onClose();
+        }}
+      >
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Detalles de la Venta</DialogTitle>
@@ -106,7 +99,7 @@ export default function ShowVenta({ sale }: { sale: any }) {
                 </div>
 
                 <div className="grid grid-cols-4 gap-4">
-                  <Label className="text-right">Direccion</Label>
+                  <Label className="text-right">Telefono</Label>
                   <div className="col-span-3">{Cliente.phone_number}</div>
                 </div>
 
@@ -172,16 +165,16 @@ export default function ShowVenta({ sale }: { sale: any }) {
                   </TableHeader>
                   <TableBody>
                     {Venta_articulo.map((item: any) => (
-                      <TableRow key={item.id_articulo}>
-                        <TableCell>{item.Articulos.name_articulo}</TableCell>
+                      <TableRow key={item.Articulo.id_articulo}>
+                        <TableCell>{item.Articulo.name_articulo}</TableCell>
                         <TableCell>{item.cantidad_venta}</TableCell>
                         <TableCell className="text-right">
-                          ${item.Articulos.precio_articulo.toFixed(2)}
+                          ${item.Articulo.precio_articulo.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right">
                           $
                           {(
-                            item.Articulos.precio_articulo * item.cantidad_venta
+                            item.Articulo.precio_articulo * item.cantidad_venta
                           ).toFixed(2)}
                         </TableCell>
                       </TableRow>
@@ -242,6 +235,9 @@ export default function ShowVenta({ sale }: { sale: any }) {
           {/* <DialogFooter>
             <Button type="button">Cerrar</Button>
           </DialogFooter> */}
+          <DialogFooter>
+            <Button onClick={onClose}>Cerrar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

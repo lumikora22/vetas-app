@@ -16,7 +16,6 @@ import { procesarConfirmacionPago, procesarRechazarPago } from "@/app/lib/data";
 
 export function TablePagos({ pagosConfirmar }: { pagosConfirmar: any[] }) {
   const handleApprovePayment = async (venta: any) => {
-    console.log(venta);
     Swal.fire({
       icon: "warning",
       title: "¿Estás seguro de aprobar el pago?",
@@ -52,6 +51,9 @@ export function TablePagos({ pagosConfirmar }: { pagosConfirmar: any[] }) {
 
           // Confirmación exitosa
           Swal.fire("¡Pago aprobado!", "", "success");
+
+          // Recargar la página
+          location.reload();
         } catch (error: any) {
           console.log(error);
 
@@ -105,6 +107,7 @@ export function TablePagos({ pagosConfirmar }: { pagosConfirmar: any[] }) {
 
           // Confirmación exitosa
           Swal.fire("¡Pago Rechazado!", "", "success");
+          location.reload();
         } catch (error: any) {
           console.log(error);
 

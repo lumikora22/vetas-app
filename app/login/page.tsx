@@ -1,100 +1,80 @@
+// app/login/page.js
 "use client";
-import { login, signup } from "./actions";
-import { Button } from "@/components/ui/button";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { login, register } from "./actions";
 
-const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
-  }),
-});
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false); // Controlador para el registro
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-export default function LoginPage() {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
-  });
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    login(values);
-    console.log(values);
-  }
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+
+    try {
+      if (isRegistering) {
+        // Si estamos en el formulario de registro
+        await register({ username: email, password });
+      } else {
+        // Si estamos en el formulario de login
+        await login({ username: email, password });
+      }
+      router.push("/dashboard"); // Redirigir al dashboard después de iniciar sesión o registrarse
+    } catch (error: any) {
+      setError(error.message); // Mostrar el error
+    }
+  };
+
   return (
-    <div className="container">
-      <div className="form-login-container flex flex-col items-center rounded-lg my-2.5 mx-10 p-5 shadow-custom">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Angel" {...field} />
-                  </FormControl>
-
-                  {/* <FormDescription>
-                This is your public display name.
-              </FormDescription> */}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input placeholder="*****" {...field} />
-                  </FormControl>
-                  {/* <FormDescription>
-                This is your public display name.
-              </FormDescription> */}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button className="w-full" type="submit">
-              Login
-            </Button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-200">
+      <Card className="w-full sm:w-96">
+        <CardHeader>
+          <h1>{isRegistering ? "Registrar Cuenta" : "Iniciar Sesión"}</h1>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <Input
+                placeholder="Usuario"
+                type="text"
+                value={email}
+                onChange={(e: any) => setEmail(e.target.value)}
+                required
+                className="w-full"
+              />
+              <Input
+                placeholder="Contraseña"
+                type="password"
+                value={password}
+                onChange={(e: any) => setPassword(e.target.value)}
+                required
+                className="w-full"
+              />
+              {error && <h2 className="text-red-500">{error}</h2>}
+              <Button type="submit" className="w-full mt-4">
+                {isRegistering ? "Registrarse" : "Iniciar Sesión"}
+              </Button>
+            </div>
           </form>
-        </Form>
-      </div>
+          <div className="mt-4 text-center">
+            <Button
+              variant="link"
+              onClick={() => setIsRegistering(!isRegistering)}
+            >
+              {isRegistering
+                ? "¿Ya tienes cuenta? Inicia sesión"
+                : "¿No tienes cuenta? Regístrate"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-
-    // <form>
-    //   <label htmlFor="email">Email:</label>
-    //   <input id="email" name="email" type="email" required />
-    //   <label htmlFor="password">Password:</label>
-    //   <input id="password" name="password" type="password" required />
-    //   <button >Log in</button>
-    //   <button formAction={signup}>Sign up</button>
-    //   <Button>Click me</Button>
-    // </form>
   );
 }
