@@ -1,162 +1,108 @@
 "use client";
 import * as React from "react";
-
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
+  useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHeader,
   TableHead,
+  TableHeader,
   TableRow,
-  TableFooter,
 } from "@/components/ui/table";
-import ShowVenta from "./show-venta"; // Asegúrate de tener este componente
+import ShowVenta from "./show-venta";
+import { flexRender } from "@tanstack/react-table";
 
-export default function SalesTable({
-  ventas, // La página predeterminada es la 1
-}: {
-  ventas: any;
-}) {
-  // Estado para manejar la visibilidad del modal y la venta seleccionada
-  const [showModal, setShowModal] = React.useState<boolean>(false);
-  const [selectedVenta, setSelectedVenta] = React.useState<any>(null);
+export default function SalesTable({ ventas }: { ventas: any[] }) {
+  console.log(ventas);
   const [searchValue, setSearchValue] = React.useState("");
+  const [selectedVenta, setSelectedVenta] = React.useState<any | null>(null);
+  const [showModal, setShowModal] = React.useState(false);
 
-  // Definir las columnas para la tabla
-  const columns: ColumnDef<any>[] = [
-    {
-      accessorKey: "folio_contrato",
-      header: "Folio",
-      cell: ({ row }) => row.getValue("folio_contrato"),
-    },
-    {
-      // Nueva columna para el nombre del cliente
-      accessorFn: (row) => row.Cliente.name_cliente, // Usamos `accessorFn` para acceder a `name_cliente` de `Cliente`
-      header: "Nombre del Cliente",
-      cell: ({ row }) => row.getValue("Cliente.name_cliente"),
-    },
-    {
-      accessorKey: "dias_pago",
-      header: "Dia de pago",
-      cell: ({ row }) => row.getValue("dias_pago"),
-    },
-    {
-      accessorKey: "cobro_pago",
-      header: "Cobro semana",
-      cell: ({ row }) => row.getValue("cobro_pago"),
-    },
-    {
-      accessorKey: "start_date",
-      header: "Fecha de inicio",
-      cell: ({ row }) => row.getValue("start_date"),
-    },
-    {
-      accessorKey: "end_date",
-      header: "Fecha de fin",
-      cell: ({ row }) => row.getValue("end_date"),
-    },
-    {
-      accessorKey: "cantidad_semanas_pago",
-      header: "Cantidad de semanas a pagar",
-      cell: ({ row }) => row.getValue("cantidad_semanas_pago"),
-    },
-    {
-      accessorKey: "enganche",
-      header: "Enganche",
-      cell: ({ row }) => row.getValue("enganche"),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                setSelectedVenta(row.original); // Set selected sale
-                setShowModal(true); // Show modal
-              }}
-            >
-              Ver detalles de Venta
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
-
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+  // 🔹 Definir columnas de la tabla
+  const columns: ColumnDef<any>[] = React.useMemo(
+    () => [
+      { accessorKey: "folio_contrato", header: "Folio" },
+      { accessorKey: "dias_pago", header: "Día de Pago" },
+      { accessorKey: "cobro_pago", header: "Cobro Semana" },
+      { accessorKey: "start_date", header: "Fecha de Inicio" },
+      { accessorKey: "end_date", header: "Fecha de Fin" },
+      { accessorKey: "cantidad_semanas_pago", header: "Semanas a Pagar" },
+      { accessorKey: "enganche", header: "Enganche" },
+      {
+        id: "actions",
+        header: "Acciones",
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleVerDetalles(row.original)}>
+                Ver detalles de Venta
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
     []
   );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
 
-  const filteredVentas = ventas.filter((venta: any) => {
-    const nameMatch = venta.Cliente.name_cliente
-      .toLowerCase()
-      .includes(searchValue.toLowerCase());
-    const folioMatch = venta.folio_contrato
-      .toLowerCase()
-      .includes(searchValue.toLowerCase());
-    return nameMatch || folioMatch;
-  });
+  // 🔹 Filtrar ventas por folio o nombre de cliente
+  const filteredVentas = React.useMemo(
+    () =>
+      ventas.filter((venta) => {
+        const nameMatch = venta.Cliente?.name_cliente
+          ?.toLowerCase()
+          .includes(searchValue.toLowerCase());
+        const folioMatch = venta.folio_contrato
+          ?.toLowerCase()
+          .includes(searchValue.toLowerCase());
+        return nameMatch || folioMatch;
+      }),
+    [ventas, searchValue]
+  );
 
+  // 🔹 Configuración de la tabla con `useMemo`
   const table = useReactTable({
     data: filteredVentas,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
   });
+
+  // 🔹 Función para ver detalles de venta (Evita actualizar si ya está seleccionada)
+  const handleVerDetalles = (venta: any) => {
+    if (
+      !selectedVenta ||
+      selectedVenta.folio_contrato !== venta.folio_contrato
+    ) {
+      setSelectedVenta(venta);
+      setShowModal(true);
+    }
+  };
 
   return (
     <div className="w-full">
+      {/* 🔹 Barra de búsqueda */}
       <div className="flex items-center py-4">
         <Input
           placeholder="Buscar por Folio o Nombre de Cliente..."
@@ -164,29 +110,9 @@ export default function SalesTable({
           onChange={(e) => setSearchValue(e.target.value)}
           className="max-w-sm"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  className="capitalize"
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                >
-                  {column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
+
+      {/* 🔹 Tabla */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -206,12 +132,9 @@ export default function SalesTable({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -228,54 +151,38 @@ export default function SalesTable({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No se encontraron resultados.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
-          {/* <TableFooter>
-            <TableRow>
-              <TableCell colSpan={6}>Total Down Payment</TableCell>
-              <TableCell className="text-right">
-                {ventas.reduce(
-                  (total: number, venta: any) => total + venta.enganche,
-                  0
-                )}
-              </TableCell>
-            </TableRow>
-          </TableFooter> */}
         </Table>
       </div>
 
-      {/* Mostrar el componente ShowVenta cuando showModal es verdadero */}
+      {/* 🔹 Botones de paginación */}
+      <div className="flex justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Anterior
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Siguiente
+        </Button>
+      </div>
+
+      {/* 🔹 Modal de detalles de venta */}
       {showModal && selectedVenta && (
         <ShowVenta sale={selectedVenta} onClose={() => setShowModal(false)} />
       )}
-
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

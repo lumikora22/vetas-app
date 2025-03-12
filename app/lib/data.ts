@@ -94,6 +94,7 @@ export const fetchFilteredSales = async (
       ), 
       Venta_articulo(
         Articulo:id_articulo(
+        name_articulo,
         id_articulo,
         precio_articulo
       ),

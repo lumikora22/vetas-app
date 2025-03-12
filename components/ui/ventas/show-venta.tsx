@@ -60,6 +60,7 @@ export default function ShowVenta({
       acc + item.Articulo.precio_articulo * item.cantidad_venta,
     0
   );
+  console.log(Venta_articulo);
 
   const nextPayDay = getNextWeekdayDate(sale.dias_pago);
 

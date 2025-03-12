@@ -19,7 +19,7 @@ export default async function Page({
       </div>
       <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
         <Search placeholder="Buscar productos..." />
-        <CreateProduct />
+        {/* <CreateProduct /> */}
       </div>
       <Suspense key={query + currentPage}>
         <Table query={query} currentPage={currentPage} />

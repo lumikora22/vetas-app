@@ -8,14 +8,11 @@ export default function Dashboard({ children }: { children: React.ReactNode }) {
         Dashboard
       </h1>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {/* <Card title="Collected" value={totalPaidInvoices} type="collected" /> */}
-        {/* <Card title="Pending" value={totalPendingInvoices} type="pending" /> */}
-        {/* <Card title="Total Invoices" value={numberOfInvoices} type="invoices" /> */}
-        {/* <Card
-        title="Total Customers"
-        value={numberOfCustomers}
-        type="customers"
-      /> */}
+        <img
+          style={{ width: "200%" }}
+          src="https://miro.medium.com/v2/resize:fit:4800/format:webp/1*SvtF4kmd8mKZdQ6hLLMh8w.jpeg"
+          alt=""
+        />
       </div>
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-8">
         {/* <RevenueChart revenue={revenue}  /> */}

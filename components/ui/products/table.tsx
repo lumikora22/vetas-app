@@ -70,12 +70,12 @@ export default async function InvoicesTable({
                 <th scope="col" className="px-3 py-5 font-medium">
                   Precio del Articulo
                 </th>
-                <th scope="col" className="px-3 py-5 font-medium">
+                {/* <th scope="col" className="px-3 py-5 font-medium">
                   Precio del Articulo
                 </th>
                 <th scope="col" className="px-3 py-5 font-medium">
                   Fecha de Venta
-                </th>
+                </th> */}
                 <th scope="col" className="relative py-3 pl-6 pr-3">
                   <span className="sr-only">Edit</span>
                 </th>
@@ -105,9 +105,9 @@ export default async function InvoicesTable({
                   <td className="whitespace-nowrap px-3 py-3">
                     {formatCurrency(product.precio_articulo)}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3">
+                  {/* <td className="whitespace-nowrap px-3 py-3">
                     {formatDateToLocal(product.created_at)}
-                  </td>
+                  </td> */}
                   {/* <td className="whitespace-nowrap px-3 py-3">
                     <InvoiceStatus status={invoice.status} />
                   </td> */}
