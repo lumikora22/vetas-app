@@ -458,7 +458,7 @@ export function DeleteProduct({ id, name, onDeleted }: DeleteProductProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Eliminar "{name}"?</DialogTitle>
+            <DialogTitle>¿Eliminar &quot;{name}&quot;?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
             Esta acción no se puede deshacer.
