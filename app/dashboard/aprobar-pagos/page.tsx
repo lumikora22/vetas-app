@@ -18,17 +18,12 @@ export default async function Page() {
   // console.log(pagosConfirmar);
   return (
     <main>
-      <Breadcrumbs
-        breadcrumbs={[
-          { label: "Pagos", href: "/dashboard/invoices" },
-          {
-            label: "Aprobar Pagos",
-            href: "/dashboard/invoices/create",
-            active: true,
-          },
-        ]}
-      />
-      <TablePagos pagosConfirmar={pagosConfirmar} />
+      <div className="flex w-full items-center justify-between">
+        <h1 className={`text-2xl`}>Aprobar Pagos</h1>
+      </div>
+      <div className="mt-4 flex items-center justify-center gap-2 md:mt-8">
+        <TablePagos pagosConfirmar={pagosConfirmar} />
+      </div>
     </main>
   );
 }

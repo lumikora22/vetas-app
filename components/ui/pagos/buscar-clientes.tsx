@@ -53,7 +53,49 @@ export function ClienteCombobox() {
 
   // Cargar todos los clientes al inicio
   React.useEffect(() => {
-    loadAllClientes();
+    const syncPagosPendientes = async () => {
+      const pagosPendientes = JSON.parse(
+        localStorage.getItem("pagosPendientes") || "[]"
+      );
+
+      if (pagosPendientes.length > 0 && navigator.onLine) {
+        const pendientesRestantes: any[] = [];
+
+        for (const cobro of pagosPendientes) {
+          try {
+            await savePagoPorConfirmar(cobro);
+          } catch (error) {
+            // Si falla, lo volvemos a guardar
+            pendientesRestantes.push(cobro);
+          }
+        }
+
+        // Actualizamos la lista de pagos pendientes
+        localStorage.setItem(
+          "pagosPendientes",
+          JSON.stringify(pendientesRestantes)
+        );
+
+        if (pendientesRestantes.length < pagosPendientes.length) {
+          Swal.fire(
+            "Pagos sincronizados",
+            "Se procesaron pagos pendientes.",
+            "success"
+          );
+          loadAllClientes();
+        }
+      }
+    };
+
+    // Ejecutar al recuperar conexión
+    window.addEventListener("online", syncPagosPendientes);
+
+    // También ejecutar al iniciar si ya está en línea
+    syncPagosPendientes();
+
+    return () => {
+      window.removeEventListener("online", syncPagosPendientes);
+    };
   }, []);
 
   // Función para seleccionar un cliente
@@ -88,8 +130,40 @@ export function ClienteCombobox() {
           const cobro = {
             id_venta: venta.id_venta,
             id_cliente: id_cliente,
+            // timestamp: new Date().toISOString(), // útil para orden y depuración
           };
-          const pago = await savePagoPorConfirmar(cobro);
+
+          if (navigator.onLine) {
+            // Si hay conexión, envía a Supabase
+            try {
+              await savePagoPorConfirmar(cobro);
+              Swal.fire(
+                "Pago realizado",
+                "El pago se ha completado.",
+                "success"
+              );
+              loadAllClientes();
+            } catch (error) {
+              Swal.fire("Error", "El pago ya se realizó o falló", "error");
+            }
+          } else {
+            // Guardar localmente si no hay conexión
+            const pagosPendientes = JSON.parse(
+              localStorage.getItem("pagosPendientes") || "[]"
+            );
+            pagosPendientes.push(cobro);
+            localStorage.setItem(
+              "pagosPendientes",
+              JSON.stringify(pagosPendientes)
+            );
+            Swal.fire(
+              "Pago guardado",
+              "El pago será enviado cuando tengas conexión.",
+              "info"
+            );
+          }
+
+          // const pago = await savePagoPorConfirmar(cobro);
 
           // Aquí llamas a la función para realizar el pago
           // await realizarPago(ventaId);

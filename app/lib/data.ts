@@ -2,6 +2,7 @@ import { unstable_noStore as noStore, revalidateTag } from "next/cache";
 import { supabase } from "@/app/lib/supabaseClient";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
 // import { Cliente } from "./types/definitions";
 import { z } from "zod";
 
@@ -36,39 +37,65 @@ export const fetchArticulos = async (): Promise<any[]> => {
 // const ITEMS_PER_PAGE = 6;
 const ITEMS_PER_PAGE = 10;
 
-export const fetchFilteredProducts = async (
+export async function fetchFilteredProducts(
   query: string,
-  currentPage: number
-): Promise<any> => {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-  const { data, error } = await supabase
+  currentPage: number,
+  sortBy: string = "created_at",
+  sortOrder: "asc" | "desc" = "desc"
+) {
+  // const supabase = createClient();
+
+  const pageSize = 10;
+  const from = (currentPage - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from("Articulos")
-    .select(
-      `
-      id_articulo,
-      created_at,
-      name_articulo,
-      precio_articulo,
-      cantidad_articulo
-    `
-    )
-    .ilike("name_articulo", `%${query}%`);
-  //   .or(
-  //     `
-  //   precio_articulo::text.ilike.%${query}%,
-  //   cantidad_articulo::text.ilike.%${query}%,
-  //   created_at::text.ilike.%${query}%
-  // `
-  //   );
-  // .order("created_at", { ascending: false });
-  // .range(offset, offset + ITEMS_PER_PAGE - 1);
+    .select("*", { count: "exact" }) // Esto permite obtener total de registros
+    .ilike("name_articulo", `%${query}%`)
+    .order(sortBy, { ascending: sortOrder === "asc" })
+    .range(from, to);
 
-  // if (error) {
-  //   throw new Error(error.message);
-  // }
+  if (error) {
+    console.error("Error fetching prestamos:", error.message);
+    return { products: [], totalPages: 0, totalItems: 0 };
+  }
 
-  return data;
-};
+  const totalPages = Math.ceil((count || 0) / pageSize);
+  const totalItems = count || 0; // Total de registros exactos
+
+  return { products: data, totalPages, totalItems };
+}
+
+export async function fetchFilteredPrestamos(
+  query: string,
+  currentPage: number,
+  sortBy: string = "created_at",
+  sortOrder: "asc" | "desc" = "desc"
+) {
+  // const supabase = createClient();
+
+  const pageSize = 10;
+  const from = (currentPage - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("Prestamos")
+    .select("*", { count: "exact" }) // Esto permite obtener total de registros
+    // .ilike("total_prestamo", `%${query}%`)
+    .order(sortBy, { ascending: sortOrder === "asc" })
+    .range(from, to);
+
+  if (error) {
+    console.error("Error fetching prestamos:", error.message);
+    return { products: [], totalPages: 0, totalItems: 0 };
+  }
+
+  const totalPages = Math.ceil((count || 0) / pageSize);
+  const totalItems = count || 0; // Total de registros exactos
+
+  return { products: data, totalPages, totalItems };
+}
 
 export const fetchFilteredSales = async (
   query: string,
@@ -200,17 +227,24 @@ export const fetchCustomersWithSaleInfoToPay = async (
       id_cliente,
       name_cliente,
       adress_cliente,
-      Cuenta_venta (
-        id_pago,
-        created_at,
-        id_cliente,
-        id_cobrador,
+      Venta(
         id_venta,
-        total_pago_evento,
-        fecha_pago,
-        status_pago,
-        resta_pago
+        folio_contrato,
+        dias_pago,
+        cobro_pago,
+        start_date,
+        end_date,
+        Cuenta_venta (
+          id_pago,
+          created_at,
+          id_venta,
+          total_pago_evento,
+          fecha_pago,
+          status_pago,
+          resta_pago
+        )
       )
+      
     `
     )
     .ilike("name_cliente", `%${query}%`);
@@ -431,6 +465,7 @@ export const guardarVenta = async (
 ) => {
   const { articulos, ...ventaData } = venta; // Desestructuramos el objeto venta para separar los artículos
 
+  console.log(ventaData);
   // Guardamos los datos de la venta en la tabla `Venta`
   const { data: ventaGuardada, error: errorVenta } = await supabase
     .from("Venta")
@@ -460,8 +495,8 @@ export const guardarVenta = async (
   });
   const cuenta_venta = {
     created_at: ventaData.start_date,
-    id_cliente: ventaData.id_cliente,
-    id_cobrador: ventaData.id_cobrador,
+    // id_cliente: ventaData.id_cliente,
+    // id_cobrador: ventaData.id_cobrador,
     id_venta: ventaGuardada.id_venta,
     total_pago_evento: ventaGuardada.cobro_pago,
     fecha_pago: ventaData.start_date,
@@ -469,6 +504,7 @@ export const guardarVenta = async (
     resta_pago: totalVenta - ventaGuardada.enganche,
   };
 
+  console.log(cuenta_venta);
   const { error: errorCuenta } = await supabase
     .from("Cuenta_venta")
     .insert([cuenta_venta]);
@@ -484,6 +520,145 @@ export const guardarVenta = async (
   return ventaGuardada; // Retornamos la venta guardada
 };
 
+export const guardarArticulo = async (articulo: Producto) => {
+  const { data, error } = await supabase
+    .from("Articulos")
+    .insert([articulo])
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const editarArticulo = async (articulo: Producto) => {
+  const { data, error } = await supabase
+    .from("Articulos")
+    .update(articulo)
+    .eq("id_articulo", articulo.id_articulo)
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const eliminarArticulo = async (id_articulo: number) => {
+  const { data, error } = await supabase
+    .from("Articulos")
+    .delete()
+    .eq("id_articulo", id_articulo)
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const guardarPrestamo = async (prestamo: Prestamo) => {
+  const { data, error } = await supabase
+    .from("Prestamos")
+    .insert([prestamo])
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const eliminarPrestamo = async (id_prestamo: number) => {
+  const { data, error } = await supabase
+    .from("Prestamos")
+    .delete()
+    .eq("id_prestamo", id_prestamo)
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const editarPrestamo = async (prestamo: Prestamo) => {
+  const { data, error } = await supabase
+    .from("Prestamos")
+    .update(prestamo)
+    .eq("id_prestamo", prestamo.id_prestamo)
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const eliminarVenta = async (id_venta: number) => {
+  const { data, error } = await supabase
+    .from("Venta")
+    .delete()
+    .eq("id_venta", id_venta)
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data; // Retornamos el artículo guardado
+};
+export const editarVenta = async (venta: Venta) => {
+  const { data, error } = await supabase
+    .from("Venta")
+    .update(venta)
+    .eq("id_venta", venta.id_venta)
+    .select()
+    .single(); // Usamos .single() ya que insertamos un solo registro
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data; // Retornamos el artículo guardado
+};
+
+export const getLastFolio = async () => {
+  const { data, error } = await supabase
+    .from("Venta")
+    .select("folio_contrato")
+    .order("folio_contrato", { ascending: false })
+    .limit(1);
+
+  const nextFolio = data?.length
+    ? `FOLIO-${String(
+        parseInt(data[0].folio_contrato.replace("FOLIO-", "")) + 1
+      ).padStart(5, "0")}`
+    : "FOLIO-00001";
+  if (error) {
+    throw new Error(error.message);
+  }
+  return nextFolio;
+};
+
+type Prestamo = {
+  id_prestamo: number;
+  subtotal_prestamo: number;
+  interes: number;
+  total_prestamo: number;
+};
 type Venta = {
   id_venta?: number; // El id de la venta se asignará después de la inserción
   folio_contrato: string;
@@ -496,10 +671,17 @@ type Venta = {
   cantidad_semanas_pago: number;
   enganche: number;
 };
-
 type ArticuloVenta = {
   id_articulo: number;
+  name_articulo: string;
   cantidad: number;
+  precio_articulo: number;
+};
+
+type Producto = {
+  id_articulo: number;
+  name_articulo: string;
+  cantidad_articulo: number;
   precio_articulo: number;
 };
 

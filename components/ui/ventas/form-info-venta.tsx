@@ -66,16 +66,19 @@ export default function FormInfoVenta({
   customers,
   products,
   onSubmit,
+  lastFolio,
 }: {
   colaborators: any[];
   customers: any[];
   products: any[];
   onSubmit: any;
+  lastFolio: string;
 }) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
+    mode: "onChange",
     defaultValues: {
-      folioContrato: "",
+      folioContrato: lastFolio,
       diaPago: undefined,
       cobroSemana: 0,
       fechaInicio: "",
@@ -131,6 +134,16 @@ export default function FormInfoVenta({
   };
 
   const handleSubmit = (form: any) => {
+    if (selectedProducts.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debes agregar al menos un producto.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // onSubmit(formData, selectedProducts);
     onSubmit(form, selectedProducts); // Llamamos la función que recibimos como prop del componente padre
   };
 
@@ -140,66 +153,16 @@ export default function FormInfoVenta({
         onSubmit={form.handleSubmit(handleSubmit)}
         className="space-y-6 max-w-4xl mx-auto p-4"
       >
-        <FormField
-          control={form.control}
-          name="folioContrato"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Folio de Contrato</FormLabel>
-              <FormControl>
-                <Input placeholder="Folio de Contrato" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="diaPago"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Día de Pago</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange} // Cambia de `onChange` a `onValueChange` si el componente lo requiere
-                >
-                  <SelectTrigger className="w-[100%]">
-                    <SelectValue placeholder="Seleccionar un día" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Días de Pago</SelectLabel>
-                      <SelectItem value="Lunes">Lunes</SelectItem>
-                      <SelectItem value="Martes">Martes</SelectItem>
-                      <SelectItem value="Miercoles">Miércoles</SelectItem>
-                      <SelectItem value="Jueves">Jueves</SelectItem>
-                      <SelectItem value="Viernes">Viernes</SelectItem>
-                      <SelectItem value="Sábado">Sábado</SelectItem>
-                      <SelectItem value="Domingo">Domingo</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex flex-col sm:flex-row sm:space-x-4 w-full">
+        <h2 className="text-xl font-semibold mb-4">Información general</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="cobroSemana"
-            render={({ field }) => <CurrencyInput field={field} form={form} />}
-          />
-          <FormField
-            control={form.control}
-            name="fechaInicio"
+            name="folioContrato"
             render={({ field }) => (
-              <FormItem className="w-full sm:w-1/3">
-                <FormLabel>Fecha de Inicio</FormLabel>
+              <FormItem>
+                <FormLabel>Folio de Contrato</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} className="w-full" />
+                  <Input placeholder="Folio de Contrato" disabled {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -207,115 +170,201 @@ export default function FormInfoVenta({
           />
           <FormField
             control={form.control}
-            name="fechaFinal"
+            name="diaPago"
             render={({ field }) => (
-              <FormItem className="w-full sm:w-1/3">
-                <FormLabel>Fecha Final</FormLabel>
+              <FormItem>
+                <FormLabel>Día de Pago</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} className="w-full" />
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange} // Cambia de `onChange` a `onValueChange` si el componente lo requiere
+                  >
+                    <SelectTrigger className="w-[100%]">
+                      <SelectValue placeholder="Seleccionar un día" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Días de Pago</SelectLabel>
+                        <SelectItem value="Lunes">Lunes</SelectItem>
+                        <SelectItem value="Martes">Martes</SelectItem>
+                        <SelectItem value="Miercoles">Miércoles</SelectItem>
+                        <SelectItem value="Jueves">Jueves</SelectItem>
+                        <SelectItem value="Viernes">Viernes</SelectItem>
+                        <SelectItem value="Sábado">Sábado</SelectItem>
+                        <SelectItem value="Domingo">Domingo</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Fechas y cobro</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="cobroSemana"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cobro por Semana</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fechaInicio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Inicio</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} className="w-full" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fechaFinal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha Final</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} className="w-full" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Cliente y Cobrador</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="cliente"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente:</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-[100%]">
+                        <SelectValue placeholder="Selecciona un cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Clientes Registrados</SelectLabel>
+                          {customers.map((customer) => (
+                            <SelectItem
+                              key={customer.id_cliente}
+                              value={String(customer.id_cliente)} // Asegúrate de que el value sea una cadena o el tipo correcto
+                            >
+                              {customer.name_cliente}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cobrador"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cobrador</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-[100%]">
+                        <SelectValue placeholder="Selecciona un cobrador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Cobradores Registrados</SelectLabel>
+                          {colaborators.map((cobrador) => (
+                            <SelectItem
+                              key={cobrador.id_cobrador}
+                              value={String(cobrador.id_cobrador)}
+                            >
+                              {cobrador.name_cobrador}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Pagos adicionales</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="semanasPago"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cantidad de Semanas de Pago</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="enganche"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Enganche</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Productos</h2>
+          <ProductSelector products={products} onProductSelect={addProduct} />
 
-        <FormField
-          control={form.control}
-          name="cliente"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cliente:</FormLabel>
-              <FormControl>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-[100%]">
-                    <SelectValue placeholder="Selecciona un cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Clientes Registrados</SelectLabel>
-                      {customers.map((customer) => (
-                        <SelectItem
-                          key={customer.id_cliente}
-                          value={String(customer.id_cliente)} // Asegúrate de que el value sea una cadena o el tipo correcto
-                        >
-                          {customer.name_cliente}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="cobrador"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cobrador</FormLabel>
-              <FormControl>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-[100%]">
-                    <SelectValue placeholder="Selecciona un cobrador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Cobradores Registrados</SelectLabel>
-                      {colaborators.map((cobrador) => (
-                        <SelectItem
-                          key={cobrador.id_cobrador}
-                          value={String(cobrador.id_cobrador)}
-                        >
-                          {cobrador.name_cobrador}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="semanasPago"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cantidad de Semanas de Pago</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="enganche"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Enganche</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormLabel className="text-center">Seleccionar los productos</FormLabel>
-        <ProductSelector products={products} onProductSelect={addProduct} />
-
-        <ProductTable
-          products={selectedProducts}
-          onAmountChange={updateProductAmount}
-          onDelete={onDeleteProductAction}
-        />
-        <Button type="submit">Generar Venta</Button>
+          <ProductTable
+            products={selectedProducts}
+            onAmountChange={updateProductAmount}
+            onDelete={onDeleteProductAction}
+          />
+        </div>
+        <div className="text-center pt-6">
+          <Button
+            disabled={!form.formState.isValid}
+            type="submit"
+            className="px-8 py-3 text-lg"
+          >
+            Generar Venta
+          </Button>
+        </div>
       </form>
     </Form>
   );

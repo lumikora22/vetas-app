@@ -8,10 +8,12 @@ export default function FormCreateVenta({
   customers,
   products,
   colaborators,
+  lastFolio,
 }: {
   customers: any[];
   products: any[];
   colaborators: any[];
+  lastFolio: string;
 }) {
   const handleFormSubmit = async (formData: any, selectedProducts: any) => {
     console.log(selectedProducts);
@@ -59,6 +61,7 @@ export default function FormCreateVenta({
         colaborators={colaborators}
         customers={customers}
         products={products}
+        lastFolio={lastFolio}
         onSubmit={handleFormSubmit}
       ></FormInfoVenta>
     </div>

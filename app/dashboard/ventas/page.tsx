@@ -2,7 +2,13 @@ import { CreateProduct } from "@/components/ui/products/buttons";
 import Search from "@/components/ui/search";
 import { Suspense } from "react";
 import Table from "@/components/ui/ventas/table";
-import { fetchFilteredSales } from "@/app/lib/data";
+import {
+  fetchArticulos,
+  fetchColaborators,
+  fetchCustomers,
+  fetchFilteredSales,
+  getLastFolio,
+} from "@/app/lib/data";
 export default async function Page({
   searchParams,
 }: {
@@ -13,6 +19,11 @@ export default async function Page({
 }) {
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
+
+  const customers = await fetchCustomers();
+  const products = await fetchArticulos();
+  const colaborators = await fetchColaborators();
+  const lastFolio = await getLastFolio();
 
   const sales = await fetchFilteredSales(query, currentPage);
   console.log(sales);
@@ -26,7 +37,13 @@ export default async function Page({
         <CreateProduct /> */}
       </div>
       <Suspense key={query + currentPage}>
-        <Table ventas={sales} />
+        <Table
+          ventas={sales}
+          customers={customers}
+          products={products}
+          colaborators={colaborators}
+          lastFolio={lastFolio}
+        />
       </Suspense>
       <div className="mt-5 flex w-full justify-center">
         {/* <Pagination totalPages={totalPages} /> */}
